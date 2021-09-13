@@ -13,14 +13,14 @@ const chunk = require(`lodash/chunk`)
  */
 exports.createPages = async gatsbyUtilities => {
   // Query our posts from the GraphQL server
-  // const posts = await getPosts(gatsbyUtilities)
+  const posts = await getPosts(gatsbyUtilities)
 
   // If there are no posts in WordPress, don't do anything
-  // if (!posts.length) {
-  //   return
-  // }
+  if (!posts.length) {
+    return
+  }
 
-  // await createIndividualBlogPostPages({ posts, gatsbyUtilities })
+  await createIndividualBlogPostPages({ posts, gatsbyUtilities })
   //
   // await createBlogPostArchive({ posts, gatsbyUtilities })
 
@@ -47,8 +47,9 @@ const createIndividualBlogPostPages = async ({ posts, gatsbyUtilities }) =>
     )
   )
 
-async function createHomePage({ graphql, actions: { createPage } }) {
-  const { data } = await graphql(`
+async function createHomePage(gatsbyUtilities) {
+  const { graphql, actions: { createPage } } = gatsbyUtilities
+  const { data: allWpPage } = await graphql(`
       query GET_HOME {
         allWpPage {
           nodes {
@@ -63,7 +64,11 @@ async function createHomePage({ graphql, actions: { createPage } }) {
     path: `/`,
     component: path.resolve("./src/templates/Home.jsx"),
     context: {
-      data
+      data: {
+        allWpPage,
+        posts: await getPosts(gatsbyUtilities)
+      },
+
     }
   })
 }
@@ -126,11 +131,13 @@ async function createBlogPostArchive({ posts, gatsbyUtilities }) {
     })
   )
 }
+const postsName = 'allWpProject'
 
-async function getPosts({ graphql, reporter }) {
+async function getPosts(gatsbyUtilities) {
+  const { graphql, reporter } = gatsbyUtilities
   const graphqlResult = await graphql(/* GraphQL */ `
     query WpPosts {
-      allWpPost(sort: { fields: [date], order: DESC }) {
+      ${postsName}(sort: { fields: [date], order: DESC }) {
         edges {
           previous {
             id
@@ -155,5 +162,5 @@ async function getPosts({ graphql, reporter }) {
     return
   }
 
-  return graphqlResult.data.allWpPost.edges
+  return graphqlResult.data[postsName].edges
 }
